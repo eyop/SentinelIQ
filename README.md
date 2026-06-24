@@ -1,0 +1,158 @@
+# SentinelIQ — AI-Powered Threat Intelligence Platform
+
+> Ask your SOC questions in plain English. Get answers grounded in live CVE and SIEM data.
+
+[![Python](https://img.shields.io/badge/Python-3.11+-blue)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.111-green)](https://fastapi.tiangolo.com)
+[![LangChain](https://img.shields.io/badge/LangChain-0.2-purple)](https://langchain.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
+
+## What it does
+
+SentinelIQ ingests CVE/NVD feeds, MITRE ATT&CK reports, and Elastic SIEM logs, embeds them into a vector store, and exposes a RAG pipeline so security analysts can ask natural language questions and get grounded, cited answers.
+
+**Example query:** *"Are there any critical CVEs affecting our Docker stack in the last 14 days?"*
+
+**Example answer:** *"Yes — CVE-2024-21626 (CVSS 8.6) allows container breakout via runc. Remediation: upgrade runc to ≥1.1.12. Source: NVD 2024-02-01."*
+
+---
+
+## Architecture
+
+```
+NVD/CVE Feeds ─┐
+MITRE ATT&CK  ─┼─▶ LangChain Loaders ─▶ Normaliser ─▶ Chunker ─▶ OpenAI Embeddings ─▶ Pinecone
+Elastic SIEM  ─┘                                                                            │
+                                                                                            ▼
+React Dashboard ◀── FastAPI (/query /alerts /cve) ◀── LangChain RAG Chain (GPT-4o) ◀── Retriever
+```
+
+## Tech Stack
+
+| Layer | Tool |
+|---|---|
+| Ingestion | LangChain document loaders |
+| Scheduling | APScheduler |
+| Embeddings | OpenAI `text-embedding-3-small` |
+| Vector store | Pinecone |
+| LLM | GPT-4o via LangChain |
+| SIEM | Elasticsearch Python client |
+| Backend | FastAPI + Pydantic v2 |
+| Frontend | React + TailwindCSS |
+| Infra | Docker Compose |
+
+---
+
+## Quickstart
+
+### 1. Clone & configure
+
+```bash
+git clone https://github.com/YOUR_USERNAME/sentineliq.git
+cd sentineliq
+cp .env.example .env
+# Fill in your API keys in .env
+```
+
+### 2. Run with Docker (recommended)
+
+```bash
+docker-compose up --build
+```
+
+API: http://localhost:8000  
+Docs: http://localhost:8000/docs  
+Dashboard: http://localhost:3000
+
+### 3. Run locally (development)
+
+```bash
+# Backend
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn api.main:app --reload
+
+# Trigger initial ingestion
+python scripts/ingest_now.py
+```
+
+---
+
+## Project Structure
+
+```
+sentineliq/
+├── ingestion/          # Data loaders & normaliser
+│   ├── nvd_loader.py
+│   ├── mitre_loader.py
+│   ├── elastic_loader.py
+│   └── normaliser.py
+├── rag/                # Embedding, vector store, RAG chain
+│   ├── chunker.py
+│   ├── embedder.py
+│   ├── vectorstore.py
+│   ├── retriever.py
+│   ├── chain.py
+│   └── prompts.py
+├── siem/               # Elastic SIEM integration
+│   ├── client.py
+│   ├── parser.py
+│   └── correlator.py
+├── api/                # FastAPI application
+│   ├── main.py
+│   ├── auth.py
+│   ├── schemas.py
+│   └── routes/
+│       ├── query.py
+│       ├── alerts.py
+│       └── cve.py
+├── frontend/           # React dashboard
+├── scripts/            # One-off utilities
+│   └── ingest_now.py
+├── tests/
+├── docker/
+├── docker-compose.yml
+├── requirements.txt
+└── .env.example
+```
+
+---
+
+## Environment Variables
+
+See `.env.example` for all required variables.
+
+| Variable | Description |
+|---|---|
+| `OPENAI_API_KEY` | OpenAI API key |
+| `PINECONE_API_KEY` | Pinecone API key |
+| `PINECONE_INDEX` | Pinecone index name (e.g. `sentineliq`) |
+| `ELASTIC_URL` | Elasticsearch URL |
+| `ELASTIC_API_KEY` | Elastic API key |
+| `JWT_SECRET` | Secret for JWT signing |
+
+---
+
+## Roadmap
+
+- [x] Phase 1: NVD + MITRE ATT&CK ingestion
+- [x] Phase 2: OpenAI embeddings + Pinecone vector store
+- [x] Phase 3: LangChain RAG pipeline
+- [ ] Phase 4: Elastic SIEM correlation engine
+- [ ] Phase 5: FastAPI backend complete
+- [ ] Phase 6: React dashboard
+
+---
+
+## Certifications Applied
+
+- Google Cybersecurity — SIEM integration, log analysis
+- IBM AI Engineering — RAG pipeline, embeddings
+- Elastic SIEM — Elasticsearch integration
+- Fortinet NSE — Threat categorisation logic
+
+---
+
+## License
+
+MIT
