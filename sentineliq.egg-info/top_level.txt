@@ -1,0 +1,6 @@
+api
+frontend
+ingestion
+rag
+scripts
+siem

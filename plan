@@ -1,0 +1,121 @@
+## SentinelIQ Project Scan & Build Plan
+
+I've analyzed your existing SentinelIQ project. Here's the current state and a phased build plan to move it from foundation to production-ready.
+
+### **Current Project State**
+
+✅ **Foundation laid:**
+- Directory structure established (ingestion/, rag/, api/, siem/, frontend/)
+- Core modules created: NVD loader, RAG chain, MITRE loader, normalizer
+- Configuration file (`config.py`) with base settings
+- Scheduler framework in place
+
+⚠️ **Needs completion:**
+- No `requirements.txt` or `pyproject.toml` (dependencies not locked)
+- API routes skeleton exists but endpoints not fully implemented
+- Frontend directory empty (no React app scaffolded)
+- No Docker Compose configuration
+- No database schema or initialization scripts
+- Authentication module exists but not integrated
+- Correlator logic framework present but incomplete
+
+---
+
+## **Recommended Build Plan (8-Week Sprint)**
+
+### **Phase 1: Environment & Dependencies Setup (Days 1–2)**
+- [ ] Create `pyproject.toml` with all dependencies (LangChain, FastAPI, Pydantic, OpenAI, elasticsearch, APScheduler, etc.)
+- [ ] Set up virtual environment and lock dependencies
+- [ ] Create `.env.example` with required API keys (OpenAI, Pinecone/Redis, Elasticsearch)
+- [ ] Initialize PostgreSQL schema for CVE/alert storage
+- [ ] Create Docker Compose file with PostgreSQL, Redis, Elasticsearch containers
+
+### **Phase 2: Data Ingestion & Storage (Days 3–7)**
+- [ ] Complete NVD loader with full CVE ingestion pipeline
+- [ ] Implement MITRE ATT&CK loader
+- [ ] Finish normalizer to flatten CVE data into standardized schema
+- [ ] Add PostgreSQL ORM models (SQLAlchemy)
+- [ ] Implement Redis caching layer
+- [ ] Set up APScheduler for 6-hourly ingestion runs
+- [ ] Create ingest scripts for local testing
+
+### **Phase 3: Embeddings & Vector Store (Days 8–12)**
+- [ ] Implement chunking strategy (RecursiveCharacterTextSplitter)
+- [ ] Configure OpenAI embeddings (text-embedding-3-small)
+- [ ] Set up Pinecone connection with metadata tagging
+- [ ] Create embedding pipeline (CVE doc → chunks → vectors → Pinecone)
+- [ ] Build vector store retrieval utilities
+- [ ] Test retrieval with sample queries
+
+### **Phase 4: RAG Pipeline & Chain (Days 13–17)**
+- [ ] Complete `rag/chain.py` with ConversationalRetrievalChain
+- [ ] Implement custom prompt templates (CVE citation, severity, remediation)
+- [ ] Build context injection for retrieved documents
+- [ ] Add streaming support for long-running queries
+- [ ] Create prompt variations for different question types
+- [ ] Unit tests for retrieval quality
+
+### **Phase 5: Elasticsearch SIEM Integration (Days 18–22)**
+- [ ] Complete Elasticsearch client wrapper
+- [ ] Implement log parser for security events (Suricata, SSH, failed logins)
+- [ ] Build CorrelationEngine to match logs → CVEs
+- [ ] Create alert generation logic
+- [ ] Add alert caching in Redis
+- [ ] Test with sample Elastic data
+
+### **Phase 6: FastAPI Backend (Days 23–28)**
+- [ ] Implement all 5 core endpoints (`/query`, `/alerts`, `/ingest`, `/cve/{id}`, `/health`)
+- [ ] Add JWT authentication
+- [ ] Create Pydantic schemas for requests/responses
+- [ ] Set up request logging and error handling
+- [ ] Add rate limiting and caching middleware
+- [ ] Generate OpenAPI docs
+- [ ] Write integration tests
+
+### **Phase 7: React Dashboard (Days 29–40)**
+- [ ] Scaffold React app with Vite
+- [ ] Set up TailwindCSS + shadcn/ui components
+- [ ] Build Chat interface (question input, streaming responses)
+- [ ] Create Alert feed (real-time, sortable by severity)
+- [ ] Build CVE Explorer (searchable grid, filters)
+- [ ] Implement Threat Timeline (D3.js visualization)
+- [ ] Add authentication flow (JWT login)
+- [ ] Connect all views to FastAPI backend
+
+### **Phase 8: Deployment & Polish (Days 41–56)**
+- [ ] Create Dockerfile for backend and frontend
+- [ ] Update Docker Compose with all services
+- [ ] Add health checks and logging
+- [ ] Create `.github/workflows/` for CI/CD (tests, linting, Docker build)
+- [ ] Write deployment docs
+- [ ] Performance optimization & security audit
+- [ ] Portfolio documentation
+
+---
+
+## **Build Approach: Recommended Execution Strategy**
+
+**Why this matters:** You have code skeleton, but it's disconnected. Here's how to build systematically:
+
+1. **Start with Phase 1-2:** Get data flowing end-to-end (NVD → PostgreSQL → Redis). This proves the ingestion pipeline works.
+2. **Then Phase 3:** Embed and index one batch of CVEs. Test retrieval works.
+3. **Then Phase 4:** Query the vector store with RAG chain. This is your "demo-ready" milestone — you can show a working threat Q&A.
+4. **Then Phase 5-6:** Add API layer and SIEM correlation. Scales to production use.
+5. **Finally Phase 7-8:** Polish UI and deployment.
+
+**Key decision points:**
+- **Vector store:** Start with Pinecone (free tier) → migrate to Redis VSS if you self-host later.
+- **Database:** PostgreSQL for raw ingestion, Redis for cache/vector store.
+- **LLM:** Use GPT-4o for best structured output (CVE citations, severity, remediations).
+- **SIEM:** Assume Elasticsearch is running locally or via Docker Compose for demo.
+
+---
+
+## **Next Steps**
+
+Would you like me to:
+1. **Jump straight to Act Mode** and start building Phase 1–2 (dependencies + data ingestion)?
+2. **Refine the plan** based on your priorities (e.g., prioritize frontend polish, or focus on backend robustness)?
+3. **Ask clarifying questions** about infrastructure (Do you have Elasticsearch running? Pinecone account? OpenAI API key?)?
+
+Once you approve this plan, **toggle to Act mode** and I'll execute it phase-by-phase with continuous verification.
