@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 
 const samplePrompts = [
@@ -7,24 +7,32 @@ const samplePrompts = [
   'Show me the most relevant ATT&CK techniques for phishing campaigns.'
 ];
 
-const alerts = [
-  { id: 1, severity: 'High', title: 'Suspicious PowerShell execution', source: 'Elastic' },
-  { id: 2, severity: 'Medium', title: 'Multiple failed SSH logins', source: 'SSH' },
-  { id: 3, severity: 'Low', title: 'New CVE observed in local feed', source: 'NVD' }
-];
-
-const cveItems = [
-  { id: 'CVE-2024-21626', severity: 'High', summary: 'Container breakout in runc' },
-  { id: 'CVE-2024-3400', severity: 'Medium', summary: 'Command injection in Palo Alto' },
-  { id: 'CVE-2023-23397', severity: 'High', summary: 'ZeroLogon privilege escalation' }
-];
-
 function App() {
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [darkMode, setDarkMode] = useState(true);
+  const [alerts, setAlerts] = useState([]);
+  const [cveItems, setCveItems] = useState([]);
+
+  useEffect(() => {
+    async function loadDashboard() {
+      try {
+        const [alertsRes, cvesRes] = await Promise.all([
+          fetch('http://127.0.0.1:8000/alerts'),
+          fetch('http://127.0.0.1:8000/cves')
+        ]);
+        const alertsData = await alertsRes.json();
+        const cvesData = await cvesRes.json();
+        setAlerts(alertsData);
+        setCveItems(cvesData);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    loadDashboard();
+  }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
