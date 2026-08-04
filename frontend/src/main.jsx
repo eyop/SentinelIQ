@@ -7,11 +7,24 @@ const samplePrompts = [
   'Show me the most relevant ATT&CK techniques for phishing campaigns.'
 ];
 
+const alerts = [
+  { id: 1, severity: 'High', title: 'Suspicious PowerShell execution', source: 'Elastic' },
+  { id: 2, severity: 'Medium', title: 'Multiple failed SSH logins', source: 'SSH' },
+  { id: 3, severity: 'Low', title: 'New CVE observed in local feed', source: 'NVD' }
+];
+
+const cveItems = [
+  { id: 'CVE-2024-21626', severity: 'High', summary: 'Container breakout in runc' },
+  { id: 'CVE-2024-3400', severity: 'Medium', summary: 'Command injection in Palo Alto' },
+  { id: 'CVE-2023-23397', severity: 'High', summary: 'ZeroLogon privilege escalation' }
+];
+
 function App() {
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [darkMode, setDarkMode] = useState(true);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -40,50 +53,78 @@ function App() {
     }
   }
 
+  const theme = darkMode
+    ? { bg: '#020617', panel: '#0f172a', text: '#e2e8f0', muted: '#94a3b8', border: '#1e293b', button: '#2563eb' }
+    : { bg: '#f8fafc', panel: '#ffffff', text: '#0f172a', muted: '#475569', border: '#e2e8f0', button: '#2563eb' };
+
   return (
-    <main style={{ maxWidth: 920, margin: '40px auto', fontFamily: 'Inter, sans-serif', padding: 24, color: '#0f172a' }}>
-      <header style={{ marginBottom: 24 }}>
-        <h1 style={{ marginBottom: 8, fontSize: 32 }}>SentinelIQ Dashboard</h1>
-        <p style={{ margin: 0, fontSize: 16, color: '#475569' }}>
-          Ask a security question and receive a grounded reply from the local backend.
-        </p>
-      </header>
-
-      <section style={{ display: 'grid', gap: 16, gridTemplateColumns: '1.1fr 0.9fr' }}>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 20, border: '1px solid #e2e8f0', borderRadius: 14, background: '#fff' }}>
-          <label htmlFor="question" style={{ fontWeight: 600 }}>Security question</label>
-          <textarea
-            id="question"
-            rows={5}
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            placeholder="e.g. What CVE should I look at for a buffer overflow?"
-            style={{ padding: 12, fontSize: 15, border: '1px solid #cbd5e1', borderRadius: 10 }}
-          />
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {samplePrompts.map((prompt) => (
-              <button
-                key={prompt}
-                type="button"
-                onClick={() => setQuestion(prompt)}
-                style={{ padding: '8px 10px', borderRadius: 999, border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer' }}
-              >
-                {prompt}
-              </button>
-            ))}
+    <main style={{ minHeight: '100vh', background: theme.bg, color: theme.text, fontFamily: 'Inter, sans-serif', padding: 24 }}>
+      <div style={{ maxWidth: 1320, margin: '0 auto', display: 'grid', gap: 20 }}>
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderRadius: 16, border: `1px solid ${theme.border}`, background: theme.panel }}>
+          <div>
+            <h1 style={{ margin: '0 0 6px', fontSize: 28 }}>SentinelIQ Dashboard</h1>
+            <p style={{ margin: 0, color: theme.muted }}>Security intelligence workspace for CVEs, alerts, and analyst questions.</p>
           </div>
-          <button type="submit" disabled={loading} style={{ padding: '10px 14px', width: 140, borderRadius: 10, border: 'none', background: '#2563eb', color: '#fff', cursor: 'pointer' }}>
-            {loading ? 'Asking…' : 'Ask'}
+          <button onClick={() => setDarkMode(!darkMode)} style={{ padding: '8px 12px', borderRadius: 999, border: `1px solid ${theme.border}`, background: theme.panel, color: theme.text, cursor: 'pointer' }}>
+            {darkMode ? '☀️ Light' : '🌙 Dark'}
           </button>
-        </form>
+        </header>
 
-        <section style={{ padding: 20, border: '1px solid #e2e8f0', borderRadius: 14, background: '#f8fafc' }}>
-          <h2 style={{ marginTop: 0 }}>Answer</h2>
-          {error ? <p style={{ color: 'crimson' }}>{error}</p> : null}
-          {!answer && !error ? <p style={{ color: '#64748b' }}>Your answer will appear here.</p> : null}
-          {answer ? <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{answer}</p> : null}
+        <section style={{ display: 'grid', gap: 20, gridTemplateColumns: '1.4fr 0.8fr' }}>
+          <div style={{ display: 'grid', gap: 20 }}>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 20, borderRadius: 16, border: `1px solid ${theme.border}`, background: theme.panel }}>
+              <label htmlFor="question" style={{ fontWeight: 600 }}>Security question</label>
+              <textarea
+                id="question"
+                rows={5}
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                placeholder="e.g. What CVE should I look at for a buffer overflow?"
+                style={{ padding: 12, fontSize: 15, border: `1px solid ${theme.border}`, borderRadius: 10, background: darkMode ? '#020617' : '#fff', color: theme.text }}
+              />
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {samplePrompts.map((prompt) => (
+                  <button key={prompt} type="button" onClick={() => setQuestion(prompt)} style={{ padding: '8px 10px', borderRadius: 999, border: `1px solid ${theme.border}`, background: darkMode ? '#020617' : '#f8fafc', color: theme.text, cursor: 'pointer' }}>
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+              <button type="submit" disabled={loading} style={{ padding: '10px 14px', width: 140, borderRadius: 10, border: 'none', background: theme.button, color: '#fff', cursor: 'pointer' }}>
+                {loading ? 'Asking…' : 'Ask'}
+              </button>
+            </form>
+
+            <section style={{ padding: 20, borderRadius: 16, border: `1px solid ${theme.border}`, background: theme.panel }}>
+              <h2 style={{ marginTop: 0 }}>Answer</h2>
+              {error ? <p style={{ color: 'crimson' }}>{error}</p> : null}
+              {!answer && !error ? <p style={{ color: theme.muted }}>Your answer will appear here. </p> : null}
+              {answer ? <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{answer}</p> : null}
+            </section>
+          </div>
+
+          <aside style={{ display: 'grid', gap: 20 }}>
+            <section style={{ padding: 20, borderRadius: 16, border: `1px solid ${theme.border}`, background: theme.panel }}>
+              <h3 style={{ marginTop: 0 }}>Alerts</h3>
+              {alerts.map((alert) => (
+                <div key={alert.id} style={{ padding: '10px 0', borderBottom: `1px solid ${theme.border}` }}>
+                  <div style={{ fontWeight: 600 }}>{alert.title}</div>
+                  <div style={{ color: theme.muted, fontSize: 13 }}>{alert.source} • {alert.severity}</div>
+                </div>
+              ))}
+            </section>
+
+            <section style={{ padding: 20, borderRadius: 16, border: `1px solid ${theme.border}`, background: theme.panel }}>
+              <h3 style={{ marginTop: 0 }}>CVE Explorer</h3>
+              {cveItems.map((item) => (
+                <div key={item.id} style={{ padding: '10px 0', borderBottom: `1px solid ${theme.border}` }}>
+                  <div style={{ fontWeight: 600 }}>{item.id}</div>
+                  <div style={{ color: theme.muted, fontSize: 13 }}>{item.severity} • {item.summary}</div>
+                </div>
+              ))}
+            </section>
+          </aside>
         </section>
-      </section>
+      </div>
     </main>
   );
 }
