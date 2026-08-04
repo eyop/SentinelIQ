@@ -11,6 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.routes.alerts import router as alerts_router
+from api.routes.dashboard import router as dashboard_router
 from api.routes.ingest import router as ingest_router
 from api.routes.query import router as query_router
 from api.schemas import HealthResponse
@@ -52,6 +53,7 @@ app.add_middleware(
 app.include_router(query_router)
 app.include_router(alerts_router)
 app.include_router(ingest_router)
+app.include_router(dashboard_router)
 
 
 @app.get("/health", response_model=HealthResponse, tags=["System"])
