@@ -1,121 +1,374 @@
 ## SentinelIQ Project Scan & Build Plan
 
-I've analyzed your existing SentinelIQ project. Here's the current state and a phased build plan to move it from foundation to production-ready.
-
-### **Current Project State**
-
-✅ **Foundation laid:**
-- Directory structure established (ingestion/, rag/, api/, siem/, frontend/)
-- Core modules created: NVD loader, RAG chain, MITRE loader, normalizer
-- Configuration file (`config.py`) with base settings
-- Scheduler framework in place
-
-⚠️ **Needs completion:**
-- No `requirements.txt` or `pyproject.toml` (dependencies not locked)
-- API routes skeleton exists but endpoints not fully implemented
-- Frontend directory empty (no React app scaffolded)
-- No Docker Compose configuration
-- No database schema or initialization scripts
-- Authentication module exists but not integrated
-- Correlator logic framework present but incomplete
+This document replaces the initial outline with a more detailed execution plan for the current repository. The goal is to turn the existing scaffold into a working MVP that can ingest CVE/ATT&CK data, build a retrieval layer, answer analyst questions through a RAG workflow, expose APIs, and provide a simple dashboard.
 
 ---
 
-## **Recommended Build Plan (8-Week Sprint)**
+## 1. Project Objective
 
-### **Phase 1: Environment & Dependencies Setup (Days 1–2)**
-- [ ] Create `pyproject.toml` with all dependencies (LangChain, FastAPI, Pydantic, OpenAI, elasticsearch, APScheduler, etc.)
-- [ ] Set up virtual environment and lock dependencies
-- [ ] Create `.env.example` with required API keys (OpenAI, Pinecone/Redis, Elasticsearch)
-- [ ] Initialize PostgreSQL schema for CVE/alert storage
-- [ ] Create Docker Compose file with PostgreSQL, Redis, Elasticsearch containers
-
-### **Phase 2: Data Ingestion & Storage (Days 3–7)**
-- [ ] Complete NVD loader with full CVE ingestion pipeline
-- [ ] Implement MITRE ATT&CK loader
-- [ ] Finish normalizer to flatten CVE data into standardized schema
-- [ ] Add PostgreSQL ORM models (SQLAlchemy)
-- [ ] Implement Redis caching layer
-- [ ] Set up APScheduler for 6-hourly ingestion runs
-- [ ] Create ingest scripts for local testing
-
-### **Phase 3: Embeddings & Vector Store (Days 8–12)**
-- [ ] Implement chunking strategy (RecursiveCharacterTextSplitter)
-- [ ] Configure OpenAI embeddings (text-embedding-3-small)
-- [ ] Set up Pinecone connection with metadata tagging
-- [ ] Create embedding pipeline (CVE doc → chunks → vectors → Pinecone)
-- [ ] Build vector store retrieval utilities
-- [ ] Test retrieval with sample queries
-
-### **Phase 4: RAG Pipeline & Chain (Days 13–17)**
-- [ ] Complete `rag/chain.py` with ConversationalRetrievalChain
-- [ ] Implement custom prompt templates (CVE citation, severity, remediation)
-- [ ] Build context injection for retrieved documents
-- [ ] Add streaming support for long-running queries
-- [ ] Create prompt variations for different question types
-- [ ] Unit tests for retrieval quality
-
-### **Phase 5: Elasticsearch SIEM Integration (Days 18–22)**
-- [ ] Complete Elasticsearch client wrapper
-- [ ] Implement log parser for security events (Suricata, SSH, failed logins)
-- [ ] Build CorrelationEngine to match logs → CVEs
-- [ ] Create alert generation logic
-- [ ] Add alert caching in Redis
-- [ ] Test with sample Elastic data
-
-### **Phase 6: FastAPI Backend (Days 23–28)**
-- [ ] Implement all 5 core endpoints (`/query`, `/alerts`, `/ingest`, `/cve/{id}`, `/health`)
-- [ ] Add JWT authentication
-- [ ] Create Pydantic schemas for requests/responses
-- [ ] Set up request logging and error handling
-- [ ] Add rate limiting and caching middleware
-- [ ] Generate OpenAPI docs
-- [ ] Write integration tests
-
-### **Phase 7: React Dashboard (Days 29–40)**
-- [ ] Scaffold React app with Vite
-- [ ] Set up TailwindCSS + shadcn/ui components
-- [ ] Build Chat interface (question input, streaming responses)
-- [ ] Create Alert feed (real-time, sortable by severity)
-- [ ] Build CVE Explorer (searchable grid, filters)
-- [ ] Implement Threat Timeline (D3.js visualization)
-- [ ] Add authentication flow (JWT login)
-- [ ] Connect all views to FastAPI backend
-
-### **Phase 8: Deployment & Polish (Days 41–56)**
-- [ ] Create Dockerfile for backend and frontend
-- [ ] Update Docker Compose with all services
-- [ ] Add health checks and logging
-- [ ] Create `.github/workflows/` for CI/CD (tests, linting, Docker build)
-- [ ] Write deployment docs
-- [ ] Performance optimization & security audit
-- [ ] Portfolio documentation
+Build a security intelligence assistant that can:
+- ingest CVE and ATT&CK data from public sources,
+- normalize and store the data,
+- create embeddings and search relevant documents,
+- answer analyst questions with grounded context,
+- correlate log events with known vulnerabilities and techniques,
+- expose a backend API and a lightweight frontend dashboard.
 
 ---
 
-## **Build Approach: Recommended Execution Strategy**
+## 2. Current Repository Status
 
-**Why this matters:** You have code skeleton, but it's disconnected. Here's how to build systematically:
+### Already present
+- Project skeleton and module folders: ingestion/, rag/, api/, siem/, frontend/
+- Main app entry point in main.py
+- Initial dependency declarations in pyproject.toml
+- Docker Compose configuration for PostgreSQL, Redis, and Elasticsearch
+- Database initialization script for PostgreSQL
+- Scheduler scaffold for periodic ingestion
+- Example environment file
 
-1. **Start with Phase 1-2:** Get data flowing end-to-end (NVD → PostgreSQL → Redis). This proves the ingestion pipeline works.
-2. **Then Phase 3:** Embed and index one batch of CVEs. Test retrieval works.
-3. **Then Phase 4:** Query the vector store with RAG chain. This is your "demo-ready" milestone — you can show a working threat Q&A.
-4. **Then Phase 5-6:** Add API layer and SIEM correlation. Scales to production use.
-5. **Finally Phase 7-8:** Polish UI and deployment.
-
-**Key decision points:**
-- **Vector store:** Start with Pinecone (free tier) → migrate to Redis VSS if you self-host later.
-- **Database:** PostgreSQL for raw ingestion, Redis for cache/vector store.
-- **LLM:** Use GPT-4o for best structured output (CVE citations, severity, remediations).
-- **SIEM:** Assume Elasticsearch is running locally or via Docker Compose for demo.
+### Still missing or incomplete
+- Fully implemented configuration loading
+- Real ingestion logic for MITRE and normalisation
+- Embedding and vector-store integration
+- Prompting and retrieval chain implementation
+- API route implementations and schemas
+- Authentication flow
+- Frontend app scaffold
+- End-to-end test and deployment automation
 
 ---
 
-## **Next Steps**
+## 3. Functional Requirements
 
-Would you like me to:
-1. **Jump straight to Act Mode** and start building Phase 1–2 (dependencies + data ingestion)?
-2. **Refine the plan** based on your priorities (e.g., prioritize frontend polish, or focus on backend robustness)?
-3. **Ask clarifying questions** about infrastructure (Do you have Elasticsearch running? Pinecone account? OpenAI API key?)?
+### Core capabilities
+1. Ingest latest CVEs from the NVD API
+2. Ingest ATT&CK techniques from MITRE data sources
+3. Normalize records into a consistent document structure
+4. Store ingested data in PostgreSQL and optionally cache in Redis
+5. Chunk documents and generate embeddings
+6. Store vectors in a vector database (initially Pinecone or Redis Vector Search)
+7. Answer user questions using a RAG chain with citations and source metadata
+8. Correlate SIEM events to CVEs and ATT&CK techniques
+9. Expose a REST API for querying, alerts, and ingestion triggers
+10. Provide a simple React dashboard for chat and alerts
 
-Once you approve this plan, **toggle to Act mode** and I'll execute it phase-by-phase with continuous verification.
+### User-facing features
+- Query endpoint for analyst questions
+- Alerts endpoint for correlated security findings
+- CVE lookup endpoint by ID
+- Health endpoint for monitoring
+- Basic login/authentication flow for dashboard access
+
+---
+
+## 4. Non-Functional Requirements
+
+### Technical requirements
+- Python 3.11+
+- FastAPI for backend API
+- SQLAlchemy for database models
+- Pydantic for request/response validation
+- OpenAI-compatible LLM integration
+- Redis for caching and queueing
+- PostgreSQL for structured storage
+- Elasticsearch for SIEM/event access
+- Docker Compose for local development
+
+### Quality requirements
+- Clear error handling and logs
+- Environment-based configuration
+- Basic unit/integration tests for ingestion and retrieval
+- Local development path that works without secrets by using mock/fallbacks
+- API documented through OpenAPI/Swagger
+
+---
+
+## 5. Detailed Implementation Plan
+
+### Phase 1 - Environment and Configuration Setup
+
+#### Objectives
+- Make the project runnable locally and consistently.
+
+#### Tasks
+- [ ] Finalize dependencies in pyproject.toml and install them into the virtual environment
+- [ ] Implement config.py with settings loading from environment variables
+- [ ] Ensure .env.example contains all required variables for OpenAI, Pinecone, Elasticsearch, Postgres, Redis, and app secrets
+- [ ] Verify Docker Compose can start the required services
+- [ ] Add a startup check for required services
+
+#### Functions to implement
+- get_settings() in config.py
+- environment parsing for database, Redis, Elasticsearch, and LLM settings
+
+#### Deliverables
+- Working local environment
+- Configured secrets template
+- Docker services available for development
+
+---
+
+### Phase 2 - Data Ingestion and Storage
+
+#### Objectives
+- Build the ingestion pipeline from public sources into a structured format.
+
+#### Tasks
+- [ ] Implement ingestion/nvd_loader.py
+  - fetch_recent_cves(lookback_days)
+  - _normalise(cve)
+  - _extract_cvss(metrics)
+  - _extract_products(configurations)
+- [ ] Implement ingestion/mitre_loader.py
+  - fetch_attack_techniques()
+  - parse MITRE ATT&CK JSON/JSONL or API response into normalized records
+- [ ] Implement ingestion/normaliser.py
+  - cve_to_document(cve_record)
+  - technique_to_document(technique_record)
+  - normalize_cve_data(raw_cve)
+  - normalize_technique_data(raw_technique)
+- [ ] Implement scripts/ingest_now.py
+  - run_ingestion()
+  - save results to Postgres and/or vector store
+- [ ] Implement scheduler.py
+  - ingest_job()
+  - job scheduling every N hours
+
+#### Data model expectations
+- CVE records should include: id, source, description, severity, cvss_score, published, affected_products, references, text
+- ATT&CK techniques should include: id, name, tactic, description, platform, mitigation, text
+
+#### Deliverables
+- Functional ingestion pipeline from NVD and MITRE
+- Structured document objects ready for chunking and embedding
+
+---
+
+### Phase 3 - Persistence Layer
+
+#### Objectives
+- Make ingested data durable and queryable.
+
+#### Tasks
+- [ ] Expand the database initialization script or create ORM models for:
+  - CVE records
+  - ATT&CK techniques
+  - alerts
+  - ingestion metadata
+- [ ] Add helper functions to insert/update records in PostgreSQL
+- [ ] Add Redis caching helpers for recently accessed CVEs or alerts
+- [ ] Add basic error handling for database and cache failures
+
+#### Functions to implement
+- save_cves(records)
+- save_alerts(alerts)
+- get_cve_by_id(cve_id)
+- get_recent_alerts(limit)
+- cache_lookup(key)
+- cache_set(key, value)
+
+#### Deliverables
+- Postgres-backed persistence layer
+- Redis-backed simple cache layer
+
+---
+
+### Phase 4 - Chunking and Embeddings
+
+#### Objectives
+- Turn normalized documents into retrievable chunks.
+
+#### Tasks
+- [ ] Implement rag/chunker.py
+  - chunk_documents(documents)
+  - split large text while preserving metadata
+- [ ] Implement rag/embedder.py
+  - embed_documents(chunks)
+  - generate embeddings using an OpenAI-compatible model
+- [ ] Implement rag/vectorstore.py
+  - upsert_documents(chunks)
+  - similarity_search(query, k, filter)
+  - delete_documents(ids)
+
+#### Requirements
+- Each chunk should carry metadata such as source, id, severity, doc_type, and original document ID
+- Chunk size should be tuned to balance completeness and retrieval quality
+
+#### Deliverables
+- Vector indexing pipeline for CVEs and ATT&CK content
+- Retrieval helpers for downstream RAG
+
+---
+
+### Phase 5 - RAG Query Pipeline
+
+#### Objectives
+- Answer security questions with context from retrieved documents.
+
+#### Tasks
+- [ ] Implement rag/prompts.py with prompt templates
+  - ANALYST_PROMPT
+  - CORRELATION_PROMPT
+- [ ] Implement rag/chain.py
+  - answer_query(question, chat_history, k, severity_filter)
+  - stream_answer(question, chat_history, k)
+  - correlate_log_event(log_event_text, k)
+- [ ] Ensure retrieved sources are formatted clearly for the LLM
+- [ ] Add basic fallback behavior when retrieval returns no results
+
+#### Expected behavior
+- Answers should cite the relevant source documents
+- Responses should include severity, CVSS, and remediation guidance where available
+
+#### Deliverables
+- Working analyst Q&A pipeline
+- Log correlation support for SIEM event analysis
+
+---
+
+### Phase 6 - SIEM Integration
+
+#### Objectives
+- Connect incident data and log events to known CVEs and ATT&CK content.
+
+#### Tasks
+- [ ] Implement siem/client.py
+  - search_logs(query, index, size)
+  - get_indices()
+  - ping()
+- [ ] Implement siem/correlator.py
+  - parse_security_event(raw_event)
+  - correlate_event(event)
+  - build_alert(event, related_cves)
+- [ ] Add alert storage and optional Redis caching
+- [ ] Add sample test events for local validation
+
+#### Functional behavior
+- The system should identify suspicious patterns such as failed logins, suspicious processes, or known exploit indicators and link them to likely CVEs or techniques
+
+#### Deliverables
+- Basic SIEM correlation workflow
+- Alert generation pipeline
+
+---
+
+### Phase 7 - FastAPI Backend
+
+#### Objectives
+- Expose the platform through a stable API.
+
+#### Tasks
+- [ ] Create or complete api/schemas.py with Pydantic models for:
+  - QueryRequest
+  - QueryResponse
+  - AlertResponse
+  - HealthResponse
+  - IngestRequest
+- [ ] Implement api/routes/query.py
+  - POST /query
+  - GET /health
+- [ ] Implement api/routes/alerts.py
+  - GET /alerts
+  - POST /alerts (optional)
+- [ ] Implement api/auth.py
+  - authenticate_user()
+  - create_token()
+  - verify_token()
+- [ ] Add middleware for logging, error handling, and rate limiting
+
+#### Required endpoints
+- /health
+- /query
+- /alerts
+- /ingest
+- /cve/{cve_id}
+
+#### Deliverables
+- Working backend API with documented OpenAPI endpoints
+
+---
+
+### Phase 8 - Frontend Dashboard
+
+#### Objectives
+- Give users a simple UI to interact with the platform.
+
+#### Tasks
+- [ ] Scaffold a React + Vite frontend in frontend/
+- [ ] Add Tailwind CSS and basic UI components
+- [ ] Build pages/components for:
+  - Chat interface
+  - Alert feed
+  - CVE explorer
+  - Authentication/login
+- [ ] Connect frontend to the FastAPI backend
+- [ ] Add loading, error, and empty states
+
+#### Recommended components
+- ChatPanel
+- AlertList
+- CVEGrid
+- ThreatTimeline
+- AuthForm
+- API client wrapper
+
+#### Deliverables
+- A basic but usable dashboard for demo purposes
+
+---
+
+### Phase 9 - Testing, Hardening, and Deployment
+
+#### Objectives
+- Make the project stable enough to demonstrate and extend.
+
+#### Tasks
+- [ ] Add unit tests for ingestion, normalization, and retrieval helpers
+- [ ] Add integration tests for API routes
+- [ ] Add Dockerfiles for backend and frontend
+- [ ] Update Docker Compose with all services and health checks
+- [ ] Add GitHub Actions workflow for linting and tests
+- [ ] Write README deployment notes and example usage
+
+#### Deliverables
+- Test coverage for key flows
+- Reproducible local deployment
+- CI/CD baseline
+
+---
+
+## 6. Suggested Execution Order
+
+1. Fix environment and configuration
+2. Implement the ingestion pipeline end to end
+3. Add persistence and caching
+4. Build embeddings and vector search
+5. Wire the RAG answer chain
+6. Add FastAPI endpoints
+7. Add SIEM correlation and alert generation
+8. Build the frontend dashboard
+9. Add tests and deployment automation
+
+---
+
+## 7. Definition of Done for the MVP
+
+The MVP is considered complete when:
+- the app can ingest CVE and ATT&CK data,
+- questions can be answered with retrieved context,
+- alerts can be generated from correlated events,
+- the API responds successfully,
+- the frontend can call the API and display results,
+- the project can be started locally with Docker Compose or a virtual environment.
+
+---
+
+## 8. Immediate Next Actions
+
+The next implementation steps should be:
+1. finish config.py and dependency setup,
+2. implement the ingestion modules,
+3. complete the normalization and persistence layer,
+4. wire the vector store and RAG chain,
+5. then add API and UI layers.

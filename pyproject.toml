@@ -15,6 +15,7 @@ dependencies = [
   "redis>=4.5",
   "apscheduler>=3.10",
   "python-dotenv>=1.0",
+  "structlog>=24.0",
   "pinecone-client>=2.2.0",
   "elasticsearch>=8.6.0",
   "pydantic>=2.2",

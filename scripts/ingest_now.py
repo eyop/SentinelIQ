@@ -2,6 +2,13 @@
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from ingestion.mitre_loader import fetch_attack_techniques
 from ingestion.normaliser import cve_to_document, technique_to_document
 from ingestion.nvd_loader import fetch_recent_cves

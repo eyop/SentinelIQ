@@ -50,30 +50,35 @@ React Dashboard ◀── FastAPI (/query /alerts /cve) ◀── LangChain RAG 
 ```bash
 git clone https://github.com/YOUR_USERNAME/sentineliq.git
 cd sentineliq
-cp .env.example .env
+copy .env.example .env
 # Fill in your API keys in .env
 ```
 
-### 2. Run with Docker (recommended)
+### 2. Run locally (current implementation)
 
 ```bash
-docker-compose up --build
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+pytest -q
+uvicorn main:app --reload
 ```
 
 API: http://localhost:8000  
-Docs: http://localhost:8000/docs  
-Dashboard: http://localhost:3000
+Docs: http://localhost:8000/docs
 
-### 3. Run locally (development)
+### 3. Trigger initial ingestion
 
 ```bash
-# Backend
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn api.main:app --reload
-
-# Trigger initial ingestion
 python scripts/ingest_now.py
+```
+
+### 4. Frontend shell
+
+```bash
+cd frontend
+npm install
+npm run dev
 ```
 
 ---
