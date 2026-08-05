@@ -14,6 +14,7 @@ from api.routes.alerts import router as alerts_router
 from api.routes.dashboard import router as dashboard_router
 from api.routes.ingest import router as ingest_router
 from api.routes.query import router as query_router
+from api.routes.stream import router as stream_router
 from api.schemas import HealthResponse
 from config import get_settings
 
@@ -54,6 +55,7 @@ app.include_router(query_router)
 app.include_router(alerts_router)
 app.include_router(ingest_router)
 app.include_router(dashboard_router)
+app.include_router(stream_router)
 
 
 @app.get("/health", response_model=HealthResponse, tags=["System"])
