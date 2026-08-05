@@ -103,5 +103,47 @@ async def save_alerts(alerts: list[dict[str, Any]]) -> int:
     return len(alerts)
 
 
+async def get_recent_alerts(limit: int = 50) -> list[dict[str, Any]]:
+    engine = create_async_engine(DATABASE_URL, echo=False, future=True)
+    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    out: list[dict[str, Any]] = []
+    async with async_session() as session:
+        result = await session.execute(select(AlertRecord).order_by(AlertRecord.created_at.desc()).limit(limit))
+        rows = result.scalars().all()
+        for r in rows:
+            out.append({
+                "id": r.id,
+                "source": r.source,
+                "event_time": r.event_time.isoformat() if r.event_time else None,
+                "severity": r.severity,
+                "message": r.message,
+                "metadata": r.payload,
+                "correlated_cves": r.correlated_cves or [],
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+            })
+    await engine.dispose()
+    return out
+
+
+async def get_recent_cves(limit: int = 50) -> list[dict[str, Any]]:
+    engine = create_async_engine(DATABASE_URL, echo=False, future=True)
+    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    out: list[dict[str, Any]] = []
+    async with async_session() as session:
+        result = await session.execute(select(CVERecord).order_by(CVERecord.published_date.desc()).limit(limit))
+        rows = result.scalars().all()
+        for r in rows:
+            out.append({
+                "id": r.cve_id,
+                "description": r.description,
+                "severity": r.severity,
+                "cvss_score": r.cvss_score,
+                "published_date": r.published_date.isoformat() if r.published_date else None,
+                "affected_products": r.affected_products or [],
+            })
+    await engine.dispose()
+    return out
+
+
 if __name__ == "__main__":
     asyncio.run(init_db())

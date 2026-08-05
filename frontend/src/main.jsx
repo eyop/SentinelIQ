@@ -115,8 +115,28 @@ function App() {
               <h3 style={{ marginTop: 0 }}>Alerts</h3>
               {alerts.map((alert) => (
                 <div key={alert.id} style={{ padding: '10px 0', borderBottom: `1px solid ${theme.border}` }}>
-                  <div style={{ fontWeight: 600 }}>{alert.title}</div>
-                  <div style={{ color: theme.muted, fontSize: 13 }}>{alert.source} • {alert.severity}</div>
+                  <div style={{ fontWeight: 600 }}>{alert.title || alert.message || `Alert ${alert.id}`}</div>
+                  <div style={{ color: theme.muted, fontSize: 13 }}>
+                    {alert.source} • {alert.severity}
+                    {alert.event_time ? ` • ${new Date(alert.event_time).toLocaleString()}` : null}
+                  </div>
+                  {alert.correlated_cves && alert.correlated_cves.length ? (
+                    <div style={{ marginTop: 6, fontSize: 13 }}>
+                      Correlated: {alert.correlated_cves.join(', ')}
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+            </section>
+
+            <section style={{ padding: 20, borderRadius: 16, border: `1px solid ${theme.border}`, background: theme.panel }}>
+              <h3 style={{ marginTop: 0 }}>Threat Timeline</h3>
+              {alerts.length === 0 ? <div style={{ color: theme.muted }}>No alerts</div> : null}
+              {alerts.map((alert) => (
+                <div key={`tl-${alert.id}`} style={{ padding: '8px 0', borderBottom: `1px dashed ${theme.border}` }}>
+                  <div style={{ fontSize: 13, color: theme.muted }}>{alert.event_time ? new Date(alert.event_time).toLocaleString() : '—'}</div>
+                  <div style={{ fontWeight: 600 }}>{alert.title || alert.message || `Alert ${alert.id}`}</div>
+                  <div style={{ fontSize: 13, color: theme.muted }}>{alert.source} • {alert.severity}</div>
                 </div>
               ))}
             </section>
