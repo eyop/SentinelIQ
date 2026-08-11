@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom/client';
+
+const API_BASE = ''; // uses Vite dev proxy -> backend
 
 const samplePrompts = [
   'What CVE should I look at for a buffer overflow?',
   'Summarize the latest high-severity vulnerabilities affecting Linux servers.',
-  'Show me the most relevant ATT&CK techniques for phishing campaigns.'
+  'Show me the most relevant ATT&CK techniques for phishing campaigns.',
 ];
 
 function App() {
@@ -15,13 +17,14 @@ function App() {
   const [darkMode, setDarkMode] = useState(true);
   const [alerts, setAlerts] = useState([]);
   const [cveItems, setCveItems] = useState([]);
+  const abortRef = useRef(null);
 
   useEffect(() => {
     async function loadDashboard() {
       try {
         const [alertsRes, cvesRes] = await Promise.all([
-          fetch('http://127.0.0.1:8000/alerts'),
-          fetch('http://127.0.0.1:8000/cves')
+          fetch(`${API_BASE}/alerts`),
+          fetch(`${API_BASE}/cves`),
         ]);
         const alertsData = await alertsRes.json();
         const cvesData = await cvesRes.json();
@@ -32,6 +35,7 @@ function App() {
       }
     }
     loadDashboard();
+    return () => abortRef.current?.abort();
   }, []);
 
   async function handleSubmit(e) {
@@ -43,19 +47,48 @@ function App() {
 
     setLoading(true);
     setError('');
+    setAnswer('');
+    abortRef.current = new AbortController();
+
     try {
-      const response = await fetch('http://127.0.0.1:8000/query', {
+      const response = await fetch(`${API_BASE}/query/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question, k: 3 }),
+        signal: abortRef.current.signal,
       });
-      const data = await response.json();
       if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
         throw new Error(data.detail || 'Request failed');
       }
-      setAnswer(data.answer || 'No answer returned.');
+
+      // Parse Server-Sent Events stream
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let full = '';
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('data:')) {
+            const payload = trimmed.slice(5).trim();
+            if (payload) {
+              full += payload + '\n';
+              setAnswer(full);
+            }
+          }
+        }
+      }
+      if (!full) setAnswer('No answer returned.');
     } catch (err) {
-      setError(err.message || 'Something went wrong');
+      if (err.name !== 'AbortError') {
+        setError(err.message || 'Something went wrong');
+      }
     } finally {
       setLoading(false);
     }
@@ -97,15 +130,22 @@ function App() {
                   </button>
                 ))}
               </div>
-              <button type="submit" disabled={loading} style={{ padding: '10px 14px', width: 140, borderRadius: 10, border: 'none', background: theme.button, color: '#fff', cursor: 'pointer' }}>
-                {loading ? 'Asking…' : 'Ask'}
-              </button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button type="submit" disabled={loading} style={{ padding: '10px 14px', width: 140, borderRadius: 10, border: 'none', background: theme.button, color: '#fff', cursor: 'pointer' }}>
+                  {loading ? 'Asking…' : 'Ask'}
+                </button>
+                {loading && (
+                  <button type="button" onClick={() => abortRef.current?.abort()} style={{ padding: '10px 14px', borderRadius: 10, border: `1px solid ${theme.border}`, background: theme.panel, color: theme.text, cursor: 'pointer' }}>
+                    Stop
+                  </button>
+                )}
+              </div>
             </form>
 
             <section style={{ padding: 20, borderRadius: 16, border: `1px solid ${theme.border}`, background: theme.panel }}>
               <h2 style={{ marginTop: 0 }}>Answer</h2>
               {error ? <p style={{ color: 'crimson' }}>{error}</p> : null}
-              {!answer && !error ? <p style={{ color: theme.muted }}>Your answer will appear here. </p> : null}
+              {!answer && !error ? <p style={{ color: theme.muted }}>Your answer will appear here (streamed live).</p> : null}
               {answer ? <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{answer}</p> : null}
             </section>
           </div>
@@ -115,28 +155,18 @@ function App() {
               <h3 style={{ marginTop: 0 }}>Alerts</h3>
               {alerts.map((alert) => (
                 <div key={alert.id} style={{ padding: '10px 0', borderBottom: `1px solid ${theme.border}` }}>
-                  <div style={{ fontWeight: 600 }}>{alert.title || alert.message || `Alert ${alert.id}`}</div>
+                  <span style={{ display: 'inline-block', marginRight: 8, padding: '2px 8px', borderRadius: 999, fontSize: 12, background: alert.severity === 'High' ? '#dc2626' : '#d97706', color: '#fff' }}>
+                    {alert.severity}
+                  </span>
+                  <div style={{ fontWeight: 600 }}>{alert.message || `Alert ${alert.id}`}</div>
                   <div style={{ color: theme.muted, fontSize: 13 }}>
-                    {alert.source} • {alert.severity}
-                    {alert.event_time ? ` • ${new Date(alert.event_time).toLocaleString()}` : null}
+                    {alert.source} • {alert.event_time ? new Date(alert.event_time).toLocaleString() : ''}
                   </div>
                   {alert.correlated_cves && alert.correlated_cves.length ? (
                     <div style={{ marginTop: 6, fontSize: 13 }}>
                       Correlated: {alert.correlated_cves.join(', ')}
                     </div>
                   ) : null}
-                </div>
-              ))}
-            </section>
-
-            <section style={{ padding: 20, borderRadius: 16, border: `1px solid ${theme.border}`, background: theme.panel }}>
-              <h3 style={{ marginTop: 0 }}>Threat Timeline</h3>
-              {alerts.length === 0 ? <div style={{ color: theme.muted }}>No alerts</div> : null}
-              {alerts.map((alert) => (
-                <div key={`tl-${alert.id}`} style={{ padding: '8px 0', borderBottom: `1px dashed ${theme.border}` }}>
-                  <div style={{ fontSize: 13, color: theme.muted }}>{alert.event_time ? new Date(alert.event_time).toLocaleString() : '—'}</div>
-                  <div style={{ fontWeight: 600 }}>{alert.title || alert.message || `Alert ${alert.id}`}</div>
-                  <div style={{ fontSize: 13, color: theme.muted }}>{alert.source} • {alert.severity}</div>
                 </div>
               ))}
             </section>
