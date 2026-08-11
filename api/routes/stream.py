@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from typing import Generator
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
+
+from api.auth import require_auth
 
 from api.schemas import QueryRequest
 from config import get_settings
@@ -15,7 +17,7 @@ from rag.chain import _format_docs_for_context
 router = APIRouter(tags=["query"])
 
 
-@router.post("/query/stream")
+@router.post("/query/stream", dependencies=[Depends(require_auth)])
 async def stream_query(request: QueryRequest) -> StreamingResponse:
     """Stream an LLM answer as Server-Sent Events (SSE).
 
