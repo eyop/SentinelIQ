@@ -107,6 +107,8 @@ class SIEMClient:
 
     def __init__(self) -> None:
         self._es: Any = None
+        self._available: bool | None = None
+        self._checked = False
 
     def _get_client(self) -> Any:
         """Build (once) and return the elasticsearch client or None."""
@@ -131,14 +133,23 @@ class SIEMClient:
         return self._es
 
     def ping(self) -> bool:
-        """Return True if Elasticsearch is reachable."""
+        """Return True if Elasticsearch is reachable (cached per process)."""
+        if self._checked:
+            return bool(self._available)
         client = self._get_client()
         if client is None:
+            self._available = False
+            self._checked = True
             return False
         try:
-            return bool(client.ping())
+            ok = bool(client.ping())
+            self._available = ok
+            self._checked = True
+            return ok
         except Exception as exc:
             logger.warning("Elasticsearch ping failed: %s", exc)
+            self._available = False
+            self._checked = True
             return False
 
     def get_indices(self) -> list[str]:
@@ -165,6 +176,9 @@ class SIEMClient:
         Returns normalised events, or the sample fallback events when
         Elasticsearch is unavailable.
         """
+        # Short-circuit when ES is known to be unavailable to avoid a blocking connect.
+        if not self.ping():
+            return self.sample_events()
         client = self._get_client()
         if client is not None:
             try:
@@ -176,7 +190,7 @@ class SIEMClient:
                     body["query"]["bool"]["must"].append(
                         {"query_string": {"query": query, "default_field": "message"}}
                     )
-                resp = client.search(index=index, body=body, request_timeout=2)
+                resp = client.options(request_timeout=2).search(index=index, body=body)
                 hits = (resp.get("hits") or {}).get("hits") or []
                 return [_normalise_doc(h) for h in hits]
             except Exception as exc:
