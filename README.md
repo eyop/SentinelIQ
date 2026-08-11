@@ -143,9 +143,25 @@ See `.env.example` for all required variables.
 - [x] Phase 1: NVD + MITRE ATT&CK ingestion
 - [x] Phase 2: OpenAI embeddings + Pinecone vector store
 - [x] Phase 3: LangChain RAG pipeline
-- [ ] Phase 4: Elastic SIEM correlation engine
-- [ ] Phase 5: FastAPI backend complete
-- [ ] Phase 6: React dashboard
+- [x] Phase 4: Elastic SIEM correlation engine (offline sample fallback included)
+- [x] Phase 5: FastAPI backend complete (query, stream, alerts, token auth, health)
+- [x] Phase 6: React dashboard (Vite proxy + SSE streaming)
+
+## API Endpoints
+
+| Method | Path | Description | Auth |
+|---|---|---|---|
+| GET | `/health` | Live service health checks | Public |
+| POST | `/token` | Issue bearer token | Public |
+| POST | `/query` | RAG answer (non-streamed) | Bearer* |
+| POST | `/query/stream` | RAG answer as SSE stream | Bearer* |
+| GET | `/alerts` | Recent correlated SIEM alerts | Bearer* |
+| POST | `/alerts/correlate` | Correlate a log event to CVEs | Bearer* |
+| POST | `/alerts/persist` | Correlate + persist an alert | Bearer* |
+| POST | `/ingest` | Trigger ingestion cycle | Public |
+| GET | `/cves` | Recent CVEs (DB or sample) | Public |
+
+\* Auth is bypassed in development (`ENV=development`); in production it is enforced.
 
 ---
 
