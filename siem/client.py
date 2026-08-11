@@ -176,7 +176,7 @@ class SIEMClient:
                     body["query"]["bool"]["must"].append(
                         {"query_string": {"query": query, "default_field": "message"}}
                     )
-                resp = client.search(index=index, body=body)
+                resp = client.search(index=index, body=body, request_timeout=2)
                 hits = (resp.get("hits") or {}).get("hits") or []
                 return [_normalise_doc(h) for h in hits]
             except Exception as exc:
