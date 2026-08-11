@@ -116,7 +116,12 @@ class SIEMClient:
         try:
             from elasticsearch import Elasticsearch
 
-            kwargs: dict[str, Any] = {"hosts": [settings.elastic_url]}
+            kwargs: dict[str, Any] = {
+                "hosts": [settings.elastic_url],
+                "request_timeout": 2,
+                "max_retries": 0,
+                "retry_on_timeout": False,
+            }
             if settings.elastic_username and settings.elastic_password:
                 kwargs["basic_auth"] = (settings.elastic_username, settings.elastic_password)
             self._es = Elasticsearch(**kwargs)
@@ -135,3 +140,82 @@ class SIEMClient:
         except Exception as exc:
             logger.warning("Elasticsearch ping failed: %s", exc)
             return False
+
+    def get_indices(self) -> list[str]:
+        """Return a list of index names (empty list on failure)."""
+        client = self._get_client()
+        if client is None:
+            return []
+        try:
+            resp = client.cat.indices(format="json", h="index")
+            return [r.get("index", "") for r in resp if r.get("index")]
+        except Exception as exc:
+            logger.warning("Elasticsearch get_indices failed: %s", exc)
+            return []
+
+    def search_logs(
+        self,
+        query: str | None = None,
+        index: str = "_all",
+        size: int = 20,
+        must: list[dict[str, Any]] | None = None,
+    ) -> list[dict[str, Any]]:
+        """Search recent security events.
+
+        Returns normalised events, or the sample fallback events when
+        Elasticsearch is unavailable.
+        """
+        client = self._get_client()
+        if client is not None:
+            try:
+                body: dict[str, Any] = {
+                    "size": size,
+                    "query": {"bool": {"must": list(must or [])}},
+                }
+                if query:
+                    body["query"]["bool"]["must"].append(
+                        {"query_string": {"query": query, "default_field": "message"}}
+                    )
+                resp = client.search(index=index, body=body)
+                hits = (resp.get("hits") or {}).get("hits") or []
+                return [_normalise_doc(h) for h in hits]
+            except Exception as exc:
+                logger.warning("Elasticsearch search failed (%s); using sample events", exc)
+        return self.sample_events()
+
+    @staticmethod
+    def sample_events(limit: int = 20) -> list[dict[str, Any]]:
+        """Return the built-in sample security events (normalised)."""
+        return [_normalise_doc(evt) for evt in SAMPLE_SECURITY_EVENTS[:limit]]
+
+
+_client: SIEMClient | None = None
+
+
+def get_client() -> SIEMClient:
+    """Return a shared SIEMClient instance."""
+    global _client
+    if _client is None:
+        _client = SIEMClient()
+    return _client
+
+
+def ping() -> bool:
+    return get_client().ping()
+
+
+def get_indices() -> list[str]:
+    return get_client().get_indices()
+
+
+def search_logs(
+    query: str | None = None,
+    index: str = "_all",
+    size: int = 20,
+    must: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    return get_client().search_logs(query=query, index=index, size=size, must=must)
+
+
+def sample_events(limit: int = 20) -> list[dict[str, Any]]:
+    return get_client().sample_events(limit=limit)
