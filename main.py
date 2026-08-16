@@ -1,6 +1,12 @@
 """
-api/main.py
-SentinelIQ FastAPI application.
+main.py
+SentinelIQ FastAPI application — AI-Powered Threat Intelligence Platform.
+
+Entry point for the backend API. Serves the RAG query pipeline, SIEM alert
+correlation, CVE ingestion, and JWT-style bearer token authentication.
+Auth is bypassed in development (ENV=development) for easy local testing.
+
+Run:  python -m uvicorn main:app --reload
 """
 from __future__ import annotations
 
