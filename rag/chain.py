@@ -1,4 +1,8 @@
-"""Lightweight RAG chain with an offline fallback for local development."""
+"""RAG chain — Phase 3: AI-powered threat answering.
+
+Uses OpenAI GPT-4o when OPENAI_API_KEY is set; falls back to keyword-based
+summaries when unavailable (enables local testing without API credits).
+"""
 
 from __future__ import annotations
 
