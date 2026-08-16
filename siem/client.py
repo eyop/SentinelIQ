@@ -1,4 +1,8 @@
-"""Elasticsearch SIEM client for SentinelIQ with offline sample fallback."""
+"""SIEM Elasticsearch client — Phase 4: SIEM integration.
+
+Connects to Elasticsearch when available; falls back to 5 sample security
+events for local demos without an Elastic stack.
+"""
 from __future__ import annotations
 
 import logging
