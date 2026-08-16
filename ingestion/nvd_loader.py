@@ -1,5 +1,7 @@
 """Fetches CVE records from the NVD REST API v2.
 Produces a list of normalised CVE dicts ready for embedding.
+
+Phase 1 — Data Ingestion. Scheduled every 6h via APScheduler (see scheduler.py).
 """
 from __future__ import annotations
 
