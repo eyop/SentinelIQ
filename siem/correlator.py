@@ -1,6 +1,6 @@
-"""SIEM correlator utilities.
+"""SIEM correlator — Phase 4: alert correlation engine.
 
-Provides simple heuristics to correlate a log event with known CVEs using:
+Extracts explicit CVE IDs
 - explicit CVE ID extraction
 - vectorstore similarity lookup
 - optional LLM-based correlation via `rag.chain.correlate_log_event`
