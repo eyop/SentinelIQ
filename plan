@@ -51,10 +51,14 @@ This plan reflects the **actual scanned state** of the repository. The core back
 - [ ] Stream query answers over SSE in the chat UI
 - [ ] Show correlated CVE IDs and retrieval sources in answers
 
-### Gap F — Cleanup and hygiene
-- [ ] Remove or consolidate duplicate root-level `nvd_loader.py` / `chain.py` (keep canonical versions in `ingestion/` and `rag/`)
-- [ ] Update `README.md` with run instructions and architecture summary
-- [ ] Re-run full test suite and add coverage for new endpoints
+### Gap F — Cleanup and hygiene ✅
+- [x] Remove or consolidate duplicate root-level `nvd_loader.py` / `chain.py` (kept canonical versions in `ingestion/` and `rag/`, root files are now backward-compat shims)
+- [x] Update `README.md` with run instructions and architecture summary
+- [x] Re-run full test suite — all 16 tests pass
+- [x] Add `.gitignore` and `.dockerignore`
+- [x] Add frontend service to `docker-compose.yml`
+- [x] Frontend builds successfully (`npm run build` passes)
+- [x] Add tests for token auth and correlate endpoints
 
 ---
 
