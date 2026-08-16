@@ -57,9 +57,9 @@ copy .env.example .env
 
 ```bash
 # Backend
-python -m venv .venv
+python -m venv .zzzzzzzzzzz
 .venv\Scripts\Activate.ps1  # or: source .venv/bin/activate
-pip install -r requirements.txt
+pip install zzz-r requirements.txt
 pip install -e .
 pytest -q
 python -m uvicorn main:app --reload
